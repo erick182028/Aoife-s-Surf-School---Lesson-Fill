@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surf School Fill Board</title>
+
+<style>
+*{
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+margin:0;
+padding:0;
+}
+
+body{
+background:#f3f7fa;
+padding-bottom:80px;
+}
+
+header{
+background:#0077b6;
+color:white;
+padding:15px;
+position:sticky;
+top:0;
+}
+
+h1{
+font-size:22px;
+}
+
+.stats{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+.card{
+background:white;
+padding:10px;
+border-radius:12px;
+flex:1;
+text-align:center;
+}
+
+.tabbar{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:white;
+display:flex;
+border-top:1px solid #ddd;
+}
+
+.tabbar button{
+flex:1;
+padding:15px;
+border:none;
+background:white;
+font-weight:bold;
+}
+
+.tabbar button.active{
+background:#caf0f8;
+}
+
+.view{
+display:none;
+padding:15px;
+}
+
+.view.active{
+display:block;
+}
+
+.lesson{
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:12px;
+box-shadow:0 1px 4px rgba(0,0,0,0.08);
+}
+
+.red{
+border-left:8px solid #dc2626;
+}
+
+.amber{
+border-left:8px solid #f59e0b;
+}
+
+.green{
+border-left:8px solid #16a34a;
+}
+
+button.action{
+margin-top:10px;
+padding:10px;
+border:none;
+background:#0077b6;
+color:white;
+border-radius:8px;
+width:100%;
+}
+
+.waiting{
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:10px;
+border:1px solid #ccc;
+border-radius:8px;
+}
+
+.notice{
+background:#fff3cd;
+padding:10px;
+border-radius:10px;
+margin-bottom:15px;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🏄 Surf Lesson Fill Board</h1>
+
+<div class="stats">
+<div class="card">
+<div id="openSeats">0</div>
+<small>Open Spots</small>
+</div>
+
+<div class="card">
+<div id="risk">€0</div>
+<small>Value at Risk</small>
+</div>
+
+<div class="card">
+<div id="lessons">0</div>
+<small>Lessons</small>
+</div>
+</div>
+</header>
+
+<div id="lessonsView" class="view active"></div>
+
+<div id="waitlistView" class="view"></div>
+
+<div id="addView" class="view">
+
+<div class="notice">
+Add somebody to the waiting list.
+</div>
+
+<input id="name" placeholder="Student name">
+
+<button class="action" onclick="addPerson()">
+Add to Waiting List
+</button>
+
+</div>
+
+<div class="tabbar">
+<button class="active" onclick="showTab(0,this)">Lessons</button>
+<button onclick="showTab(1,this)">Wait List</button>
+<button onclick="showTab(2,this)">Add</button>
+</div>
+
+<script>
+
+const defaultLessons = [
+{id:1,name:"Beginner Morning",spots:2,max:8,price:45},
+{id:2,name:"Kids Camp A",spots:1,max:10,price:35},
+{id:3,name:"Intermediate Skills",spots:4,max:8,price:55},
+{id:4,name:"Sunset Surf",spots:0,max:6,price:60},
+{id:5,name:"Family Session",spots:3,max:8,price:50},
+{id:6,name:"Advanced Coaching",spots:1,max:6,price:90},
+{id:7,name:"Weekend Group",spots:2,max:10,price:40},
+{id:8,name:"Beginner Evening",spots:5,max:10,price:45}
+];
+
+let lessons =
+JSON.parse(localStorage.getItem("lessons"))
+|| defaultLessons;
+
+let waitlist =
+JSON.parse(localStorage.getItem("waitlist"))
+|| [
+"Sophie",
+"Jack",
+"Noah",
+"Ava",
+"Emily",
+"Luke",
+"Grace",
+"Charlie"
+];
+
+function save(){
+localStorage.setItem("lessons",JSON.stringify(lessons));
+localStorage.setItem("waitlist",JSON.stringify(waitlist));
+}
+
+function render(){
+
+let lessonHTML="";
+
+let risk=0;
+let open=0;
+
+lessons.forEach(l=>{
+
+open += l.spots;
+risk += l.spots*l.price;
+
+let colour="green";
+
+if(l.spots>=4){
+colour="red";
+}
+else if(l.spots>=2){
+colour="amber";
+}
+
+lessonHTML+=`
+<div class="lesson ${colour}">
+<h3>${l.name}</h3>
+<p>Open Spots: ${l.spots}</p>
+<p>Potential Revenue: €${l.spots*l.price}</p>
+
+<button class="action"
+onclick="fillSpot(${l.id})">
+Fill From Wait List
+</button>
+</div>`;
+});
+
+document.getElementById("lessonsView").innerHTML=lessonHTML;
+
+document.getElementById("openSeats").innerText=open;
+document.getElementById("risk").innerText="€"+risk;
+document.getElementById("lessons").innerText=lessons.length;
+
+let waitHTML="";
+
+waitlist.forEach(name=>{
+waitHTML+=`
+<div class="waiting">
+${name}
+</div>`;
+});
+
+document.getElementById("waitlistView").innerHTML=waitHTML;
+
+save();
+}
+
+function fillSpot(id){
+
+if(waitlist.length===0){
+alert("No students waiting.");
+return;
+}
+
+let lesson=lessons.find(l=>l.id===id);
+
+if(lesson.spots===0){
+alert("Lesson already full.");
+return;
+}
+
+lesson.spots--;
+
+waitlist.shift();
+
+render();
+}
+
+function addPerson(){
+
+const name =
+document.getElementById("name").value.trim();
+
+if(!name) return;
+
+waitlist.push(name);
+
+document.getElementById("name").value="";
+
+render();
+}
+
+function showTab(index,btn){
+
+document
+.querySelectorAll(".view")
+.forEach(v=>v.classList.remove("active"));
+
+document
+.querySelectorAll(".tabbar button")
+.forEach(b=>b.classList.remove("active"));
+
+document
+.querySelectorAll(".view")[index]
+.classList.add("active");
+
+btn.classList.add("active");
+}
+
+render();
+
+</script>
+</body>
+</html>
